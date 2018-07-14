@@ -6,8 +6,18 @@ var SystemESC = _interopDefault(require('@mark48evo/system-esc'));
 var influx = require('influx');
 var amqplib = _interopDefault(require('amqplib'));
 var Debug = _interopDefault(require('debug'));
+var pmx = _interopDefault(require('pmx'));
 
 const debug = Debug('esc:influxdb');
+pmx.init({});
+const messagesProcessed = pmx.probe().counter({
+  name: 'ESC Messages Processed'
+});
+const messagesProcessedPerMin = pmx.probe().meter({
+  name: 'msg/min',
+  samples: 1,
+  timeframe: 60
+});
 const config = {
   influxHost: process.env.INFLUXDB_HOST || 'localhost',
   influxDB: process.env.INFLUXDB_DB || 'mark48evo',
@@ -53,6 +63,8 @@ async function main() {
   const channel = await connect.createChannel();
   const systemESC = await SystemESC(channel);
   systemESC.on('stats', data => {
+    messagesProcessed.inc();
+    messagesProcessedPerMin.mark();
     const fields = {
       tempMOSFET: data.temp.mosfet,
       tempMOTOR: data.temp.motor,

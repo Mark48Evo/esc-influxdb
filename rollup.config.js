@@ -8,6 +8,7 @@ export default [
       { file: pkg.bin['esc-influxdb'], format: 'cjs', sourcemap: true },
     ],
     external: [
+      'pmx',
       'debug',
       '@mark48evo/system-esc',
       'amqplib',

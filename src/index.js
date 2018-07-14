@@ -2,8 +2,21 @@ import SystemESC from '@mark48evo/system-esc';
 import { InfluxDB, FieldType } from 'influx';
 import amqplib from 'amqplib';
 import Debug from 'debug';
+import pmx from 'pmx';
 
 const debug = Debug('esc:influxdb');
+
+pmx.init({});
+
+const messagesProcessed = pmx.probe().counter({
+  name: 'ESC Messages Processed',
+});
+
+const messagesProcessedPerMin = pmx.probe().meter({
+  name: 'msg/min',
+  samples: 1,
+  timeframe: 60,
+});
 
 const config = {
   influxHost: process.env.INFLUXDB_HOST || 'localhost',
@@ -62,6 +75,9 @@ async function main() {
   const systemESC = await SystemESC(channel);
 
   systemESC.on('stats', (data) => {
+    messagesProcessed.inc();
+    messagesProcessedPerMin.mark();
+
     const fields = {
       tempMOSFET: data.temp.mosfet,
       tempMOTOR: data.temp.motor,
